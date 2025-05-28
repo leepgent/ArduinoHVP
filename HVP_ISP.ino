@@ -51,13 +51,7 @@ USE:
   int EEPROMaddress = 0;
 #endif
 
-#define SDI 9
-#define SII 10
-#define SDO 11
-#define SCL 12
-#define RST 13
-#define VCC 8
-
+#include "pins.hpp"
 
 // Configure the serial port to use.
 //
@@ -106,7 +100,7 @@ void setup() {
   pinMode(SDI, OUTPUT);
   pinMode(SII, OUTPUT);
   pinMode(SDO, OUTPUT);
-  pinMode(SCL, OUTPUT);
+  pinMode(HVSP_SCL, OUTPUT);
   pinMode(VCC, OUTPUT);
 }
 

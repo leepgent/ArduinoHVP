@@ -24,9 +24,9 @@ byte writeHV(byte sdiByte, byte siiByte){
 
 bool pulseClock(){
   delayMicroseconds(8); //This only needs to be <1 microsecond, but let's just play things safe :)
-  digitalWrite(SCL, 1);
+  digitalWrite(HVSP_SCL, 1);
   delayMicroseconds(8); //Same...
   byte in = digitalRead(SDO); //Reading back from target
-  digitalWrite(SCL, 0);
+  digitalWrite(HVSP_SCL, 0);
   return in;
 }
