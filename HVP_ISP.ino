@@ -93,7 +93,30 @@ USE:
 #define CRC_EOP     0x20 //ok it is a space...
 
 
+void setup_boost_converter();
+void start_boost_converter();
+void stop_boost_converter();
+
+uint8_t hv_mode;
+
+void setup_lv();
+void setup_hv();
+void loop_lv();
+void loop_hv();
+
 void setup() {
+  pinMode(SELECT_HV_MODE_PIN, INPUT_PULLUP);
+  hv_mode = (digitalRead(SELECT_HV_MODE_PIN) == LOW);
+
+  hv_mode ? setup_hv() : setup_lv();
+}
+
+void loop() {
+  hv_mode ? loop_hv() : loop_lv();
+
+}
+
+void setup_hv() {
   SERIAL.begin(BAUDRATE);
   pinMode(RST,OUTPUT);
   digitalWrite(RST, 1);
@@ -102,6 +125,16 @@ void setup() {
   pinMode(SDO, OUTPUT);
   pinMode(HVSP_SCL, OUTPUT);
   pinMode(VCC, OUTPUT);
+
+  pinMode(HVMODE_LED_PIN, OUTPUT);
+  digitalWrite(HVMODE_LED_PIN, HIGH);
+
+  pinMode(LED_PMODE, OUTPUT);
+  pinMode(LED_ERR, OUTPUT);
+  pinMode(LED_HB, OUTPUT);
+  digitalWrite(LED_HB, HIGH);
+
+  setup_boost_converter();
 }
 
 int error = 0;
@@ -128,7 +161,7 @@ typedef struct param {
 parameter;
 parameter param;
 
-void loop(void) {
+void loop_hv(void) {
   if (SERIAL.available()) {
     uint8_t ch = getSerialChar();
     switch (ch) {

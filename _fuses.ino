@@ -4,6 +4,7 @@
 #define SIG_BYTE_COUNT (3)
 #define DEVICE_SIG_TINY85 (0x930B)
 #define DEVICE_SIG_TINY13A (0x9007) // 0x90 -> 1kb flash; x07 -> attiny13A
+#include "pins.hpp"
 
 struct DeviceFuseInfo {
   uint16_t    device_sig;
@@ -73,12 +74,12 @@ void burnFuses(){
     ;
   }
   Serial.printf(F("Device is %s (sig %04x)\n"), device->device_name, sig);
-  byte hfuse = device->hfuse_defaults;
-  byte lfuse = device->lfuse_defaults;
-  Serial.printf(F("Default lfuse: %02X, hfuse: %02X\n"), lfuse, hfuse);
+  //byte hfuse = device->hfuse_defaults;
+  //byte lfuse = device->lfuse_defaults;
+  Serial.printf(F("Default lfuse: %02X, hfuse: %02X\n"), device->lfuse_defaults, device->hfuse_defaults);
 
   if (!pmode) start_pmode();
-  readFusesHV();
+  Fuses currentFuses = readFusesHV();
   end_pmode();
 
   Serial.println(F("Please select new fuse settings:"));
@@ -91,35 +92,51 @@ void burnFuses(){
   Serial.println(F("Entering Programming Mode..."));
   if (!pmode) start_pmode();
 
-  if (thisChar != '9'){
+  switch (thisChar) {
+    case '9': // Read flash
+      here = 0;
+      for (byte i = 0; i < 32; i++){
+        Serial.print("0x");
+        writeHV(0b00000010, 0b01001100);  //Load "Read Flash" Command
+        pmode = 3;
+        Serial.println(flash_read(here), HEX);
+        here++;
+      }
+
+    break;
+    case '0': // set fuses to default
+        //currentFuses.hfuse = device->hfuse_defaults;
+       // currentFuses.lfuse = device->lfuse_defaults;
+      Serial.printf(F("Setting lfuse: %4x, hfuse: %4x\n"), device->lfuse_defaults, device->hfuse_defaults);
+
+      writeFusesHV(device->lfuse_defaults, device->hfuse_defaults);
+      readFusesHV();
+    break;
+
+    default: // tweak existing fuses
+    
+
     if (thisChar & 0b00000001) {
       // Set RESET DISABLE -> program appr. bit -> set to 0
-      hfuse &= ~(1<<device->hfuse_rstdisable_bit_num);
+      currentFuses.hfuse &= ~(1<<device->hfuse_rstdisable_bit_num);
     }
     if (thisChar & 0b00000010) {
       // set clock to int 8mhz osc
-      lfuse |= 0b10000000; // TODO: NOT YET SUPPORTED FOR ATTINY13
+      currentFuses.lfuse |= 0b10000000; // TODO: NOT YET SUPPORTED FOR ATTINY13
     }
     if (thisChar & 0b00000100)
     {
       // preserve eeprom
-      hfuse &= 0b11110111; // TODO: NOT YET SUPPORTED FOR ATTINY13
+      currentFuses.hfuse &= 0b11110111; // TODO: NOT YET SUPPORTED FOR ATTINY13
     }
-    Serial.printf(F("Setting lfuse: %4x, hfuse: %4x\n"), lfuse, hfuse);
+    Serial.printf(F("Setting lfuse: %4x, hfuse: %4x\n"), currentFuses.lfuse, currentFuses.hfuse);
 
-    writeFusesHV(lfuse, hfuse);
+    writeFusesHV(currentFuses.lfuse, currentFuses.hfuse);
     readFusesHV();
+    break;
+  
   }
-  else {
-    here = 0;
-    for (byte i = 0; i < 32; i++){
-      Serial.print("0x");
-      writeHV(0b00000010, 0b01001100);  //Load "Read Flash" Command
-      pmode = 3;
-      Serial.println(flash_read(here), HEX);
-      here++;
-    }
-  }
+  
   Serial.println("Exiting Programming Mode");
   end_pmode();
   Serial.println("FINISHED");
@@ -142,7 +159,9 @@ void writeFusesHV(byte _l, byte _h){
   Serial.println(); 
 }
 
-void readFusesHV(){
+
+Fuses readFusesHV(){
+  Fuses f;
   writeHV(0x04, 0x4C);
   writeHV(0x00, 0x7A);
   byte inData = writeHV(0x00, 0x7E);
@@ -150,6 +169,7 @@ void readFusesHV(){
   Serial.print(inData, BIN);
   Serial.print(F(" - "));
   Serial.println(inData, HEX);
+  f.hfuse = inData;
   
   writeHV(0x04, 0x4C);
   writeHV(0x00, 0x68);
@@ -158,6 +178,7 @@ void readFusesHV(){
   Serial.print(inData, BIN);
 Serial.print(F(" - "));
   Serial.println(inData, HEX);
+  f.lfuse = inData;
   
   //Read efuse
   writeHV(0x04, 0x4C);
@@ -167,6 +188,8 @@ Serial.print(F(" - "));
   Serial.print(inData, BIN);
     Serial.print(F(" - "));
   Serial.println(inData, HEX);
+  f.efuse = inData;
 
   Serial.println(); 
+  return f;
 }
