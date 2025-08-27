@@ -6,6 +6,12 @@ It is used to upload a sketch to an ATTINY85 microcontroller using a High-Voltag
 
 The fuses can also be set using this program.
 
+Futher modified to:
+- run a boost converter circuit
+- support the High-Voltage Programming of Attiny 25/45/85s
+- Integrate original LV ISP ArduinoISP sketch and allow the switching between LV and HV mode
+- Designed to work [this 'Universal Tiny Programmer' circuit](https://gitlab.com/leegent/universal_tiny_programmer).
+
 ## Programming Flash
 
 Connect the Arduino to the ATTINY85 as shown at https://www.rickety.us/wp-content/uploads/2010/03/diagram.png
